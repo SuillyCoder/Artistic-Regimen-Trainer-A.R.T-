@@ -1,43 +1,60 @@
 // components/AuthTest.jsx
 "use client";
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase'; // Import db
+import { doc, getDoc, setDoc } from 'firebase/firestore'; // Import Firestore functions
 import { useState, useEffect } from 'react';
 
 export default function AuthTest() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Listen for authentication state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+
+      if (currentUser) {
+        // Check if user data exists in Firestore
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+          // Create a new user document in Firestore
+          try {
+            await setDoc(userDocRef, {
+              userName: currentUser.displayName || 'New User', // Default username
+              email: currentUser.email || '',
+              profilePic: currentUser.photoURL || '', // Default or empty URL
+              // ... other initial user data
+            });
+            console.log('New user document created for:', currentUser.uid);
+          } catch (error) {
+            console.error('Error creating user document:', error);
+          }
+        }
+      }
     });
 
-    return () => unsubscribe(); // Cleanup subscription
+    return () => unsubscribe();
   }, []);
 
-  // Sign in with Google (force account selection)
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    // Add this line to force account chooser popup every time
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
       const result = await signInWithPopup(auth, provider);
       console.log('User signed in:', result.user);
+      // The onAuthStateChanged listener will handle creating the Firestore document
     } catch (error) {
       console.error('Error signing in:', error);
     }
   };
 
-  // Sign out
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      setUser(null);
       console.log('User signed out');
     } catch (error) {
       console.error('Error signing out:', error);
