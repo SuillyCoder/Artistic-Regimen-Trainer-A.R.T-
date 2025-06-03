@@ -1,8 +1,7 @@
 // src/app/api/modules/route.js
-"use client";
 // Import necessary Firestore functions and the 'db' instance
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase'; // Adjust the path based on your actual project structure
+import { db } from '../../../../lib/firebase'; // Adjust the path based on your actual project structure
 import { NextResponse } from 'next/server'; // Import NextResponse for API routes in Next.js App Router
 
 /**
