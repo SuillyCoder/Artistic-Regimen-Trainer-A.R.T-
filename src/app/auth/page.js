@@ -1,4 +1,4 @@
-import AuthTest from '../../components/authTest';
+import AuthTest from '../../components/userData/authTest';
 
 export default function HomePage() {
   return (
