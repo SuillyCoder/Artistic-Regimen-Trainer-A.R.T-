@@ -1,5 +1,5 @@
 // src/app/page.js
-import PerspectiveModulesApi from '../../../components/perspectiveModules';
+import PerspectiveModulesApi from '../../../components/moduleData/perspectiveModules';
 
 export default function Home() {
   return (

@@ -1,5 +1,5 @@
 // src/app/page.js
-import GestureModulesApi from '../../../components/gestureModules';
+import GestureModulesApi from '../../../components/moduleData/gestureModules';
 
 export default function Home() {
   return (

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 export default function TestChallengeItemsApi() {
   // Define the specific challengeId to test against based on your Firestore structure.
   // This should be one of your top-level challenge document IDs, e.g., 'anatomy1', 'gesture1'.
-  const challengeIdToTest = '99sSaANygYKyc8RmBahu'; // <<<<<<< IMPORTANT: Change this to the ID of the challenge you want to test!
+  const challengeIdToTest = 'qtwmc2MjYXMx30lR0nNK'; // <<<<<<< IMPORTANT: Change this to the ID of the challenge you want to test!
 
   const [challengeItems, setChallengeItems] = useState([]);
   const [addStatus, setAddStatus] = useState('');

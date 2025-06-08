@@ -1,53 +1,83 @@
-// src/components/TestModulesApi.js
+// src/components/TestModuleItemsApi.js
 'use client';
 import { useState, useEffect } from 'react';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage functions
+import { storage } from '../../../lib/firebase'; // Import the initialized storage instance
 
 export default function GestureModulesApi() {
-  // Define the specific moduleId to test against based on your Firestore structure
-  // For example, 'anatomy', 'gesture', or 'perspective' as per your top-level module documents
-  const moduleIdToTest = 'gesture'; // You can change this to 'gesture' or 'perspective' as needed
+  const moduleIdToTest = 'gesture'; // <<<<<<< IMPORTANT: Change this to the ID of the module you want to test!
 
   const [moduleItems, setModuleItems] = useState([]);
   const [addStatus, setAddStatus] = useState('');
   const [updateStatus, setUpdateStatus] = useState('');
   const [deleteStatus, setDeleteStatus] = useState('');
 
-  // Fields for adding a new module item
-  const [newItemImage, setNewItemImage] = useState('');
+  // States for adding a new module item
+  const [newItemFile, setNewItemFile] = useState(null); // For file upload
   const [newItemLink, setNewItemLink] = useState('');
   const [newItemTitle, setNewItemTitle] = useState('');
-  const [newItemOrder, setNewItemOrder] = useState(''); // Added for potential order field
+  const [newItemOrder, setNewItemOrder] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false); // New loading state for upload
+  const [uploadProgress, setUploadProgress] = useState(0); // New for upload progress
 
   useEffect(() => {
     fetchModuleItems();
   }, []);
 
-  // Function to fetch all module items for the specified moduleId
   const fetchModuleItems = async () => {
     try {
       const res = await fetch(`/api/modules/${moduleIdToTest}/items`);
       if (res.ok) {
         const data = await res.json();
-        // Sort items by 'order' if it exists, otherwise by ID
         const sortedData = data.sort((a, b) => (a.order || 0) - (b.order || 0));
         setModuleItems(sortedData);
       } else {
         console.error('Failed to fetch module items:', res.status);
-        setModuleItems([]); // Clear items on failure
+        setModuleItems([]);
       }
     } catch (error) {
       console.error('Error fetching module items:', error);
-      setModuleItems([]); // Clear items on error
+      setModuleItems([]);
     }
   };
 
-  // Function to add a new module item
+  // Function to handle adding a new module item
   const handleAddModuleItem = async () => {
+    setUploadingImage(true); // Start upload indicator
+    let imageUrl = '';
+
+    // If a file is selected, upload it to Firebase Storage
+    if (newItemFile) {
+      try {
+        const storageRef = ref(storage, `module_items/${moduleIdToTest}/${newItemFile.name}_${Date.now()}`);
+        const uploadTask = uploadBytes(storageRef, newItemFile);
+
+        // Optional: Listen for state changes, errors, and completion of the upload.
+        // For simplicity, we'll just await the promise.
+        const snapshot = await uploadTask;
+        imageUrl = await getDownloadURL(snapshot.ref);
+        setUploadingImage(false);
+        setUploadProgress(100);
+        setStatusMessage('Image uploaded successfully!');
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        setUploadingImage(false);
+        setUploadProgress(0);
+        setAddStatus(`Failed to upload image: ${error.message}`);
+        return; // Stop if image upload fails
+      }
+    } else {
+      // If no file, use placeholder image for custom entry, or default for dummy
+      imageUrl = `https://placehold.co/100x100/ADD8E6/000000?text=Item_Img_${Date.now()}`;
+      setUploadingImage(false);
+      setUploadProgress(100);
+    }
+
     const newItem = {
-      image: newItemImage || `https://placehold.co/100x100/ADD8E6/000000?text=Item_Img_${Date.now()}`,
+      image: imageUrl, // Use the uploaded URL or placeholder
       link: newItemLink || `https://example.com/test_link_${Date.now()}`,
       title: newItemTitle || `Test Item ${Date.now()}`,
-      order: parseInt(newItemOrder) || (moduleItems.length > 0 ? Math.max(...moduleItems.map(item => item.order || 0)) + 1 : 1), // Auto-increment order
+      order: parseInt(newItemOrder) || (moduleItems.length > 0 ? Math.max(...moduleItems.map(item => item.order || 0)) + 1 : 1),
     };
 
     try {
@@ -61,7 +91,8 @@ export default function GestureModulesApi() {
       const data = await res.json();
       if (res.ok) {
         setAddStatus(`Module item added with ID: ${data.id}`);
-        setNewItemImage(''); // Clear form fields
+        // Clear form fields
+        setNewItemFile(null); // Clear file input
         setNewItemLink('');
         setNewItemTitle('');
         setNewItemOrder('');
@@ -76,14 +107,12 @@ export default function GestureModulesApi() {
     }
   };
 
-  // Function to update an existing module item (simulating tampering)
   const handleUpdateModuleItem = async (itemId, currentTitle, currentLink, currentImage) => {
-    // Example of tampering: changing the link or title
     const tamperedData = {
-      title: `${currentTitle} - TAMPERED!`, // Changing the title
-      link: `https://tampered.example.com/${itemId}`, // Changing the link
-      // image: 'https://placehold.co/100x100/FF0000/FFFFFF?text=Tampered', // Optionally change image
-      order: (Math.random() > 0.5 ? 999 : 1), // Drastically change order
+      title: `${currentTitle} - TAMPERED!`,
+      link: `https://tampered.example.com/${itemId}`,
+      image: `https://placehold.co/100x100/FF0000/FFFFFF?text=Tampered`, // Visual indication of tampering
+      order: (Math.random() > 0.5 ? 999 : 1),
     };
 
     try {
@@ -97,7 +126,7 @@ export default function GestureModulesApi() {
       const data = await res.json();
       if (res.ok) {
         setUpdateStatus(`Module item with ID ${itemId} updated (tampered).`);
-        fetchModuleItems(); // Refresh the list
+        fetchModuleItems();
       } else {
         setUpdateStatus(`Failed to update module item ${itemId}: ${data.error}`);
         console.error('API Error:', data);
@@ -108,7 +137,6 @@ export default function GestureModulesApi() {
     }
   };
 
-  // Function to delete a module item
   const handleDeleteModuleItem = async (itemId) => {
     try {
       const res = await fetch(`/api/modules/${moduleIdToTest}/items?itemId=${itemId}`, {
@@ -117,14 +145,12 @@ export default function GestureModulesApi() {
       const data = await res.json();
       if (res.ok) {
         setDeleteStatus(`Module item with ID ${itemId} deleted.`);
-        fetchModuleItems(); // Refresh the list
+        fetchModuleItems();
       } else {
         setDeleteStatus(`Failed to delete module item ${itemId}: ${data.error}`);
-        console.error('API Error:', data);
       }
     } catch (error) {
       setDeleteStatus(`Error deleting module item ${itemId}: ${error.message}`);
-      console.error('Fetch Error:', error);
     }
   };
 
@@ -147,7 +173,23 @@ export default function GestureModulesApi() {
                 <div style={{ flexGrow: 1 }}>
                   <p><strong>Title:</strong> {item.title || 'N/A'}</p>
                   <p><strong>Link:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer">{item.link || 'N/A'}</a></p>
-                  <p><strong>Image URL:</strong> {item.image || 'N/A'}</p>
+                  <p>
+                    <strong>Image:</strong>{' '}
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.title || 'Module Item Image'}
+                        style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '5px', marginTop: '5px' }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://placehold.co/100x100/FF5733/FFFFFF?text=Error`;
+                          console.error('Image failed to load:', item.image);
+                        }}
+                      />
+                    ) : (
+                      'N/A'
+                    )}
+                  </p>
                   <p><strong>Order:</strong> {item.order !== undefined ? item.order : 'N/A'}</p>
                   <p style={{ fontSize: '0.8em', color: '#888' }}>ID: {item.id}</p>
                 </div>
@@ -174,13 +216,19 @@ export default function GestureModulesApi() {
       <div style={{ marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
         <h3 style={{ color: '#555' }}>Add New Module Item (for "{moduleIdToTest}")</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '300px' }}>
+          {/* File Input for Image */}
+          <label className="block text-sm font-medium text-gray-700">Upload Image:</label>
           <input
-            type="text"
-            placeholder="Image URL"
-            value={newItemImage}
-            onChange={(e) => setNewItemImage(e.target.value)}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setNewItemFile(e.target.files[0])}
             style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
           />
+          {uploadingImage && <p style={{ color: '#007bff' }}>Uploading image... {uploadProgress}%</p>}
+          <p style={{ fontSize: '0.8em', color: '#666', marginTop: '5px' }}>
+            (Leave blank to use a default placeholder image)
+          </p>
+
           <input
             type="text"
             placeholder="Link URL"
@@ -202,8 +250,10 @@ export default function GestureModulesApi() {
             onChange={(e) => setNewItemOrder(e.target.value)}
             style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
           />
-          <button onClick={handleAddModuleItem} style={{ padding: '10px 15px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-            Add Module Item
+          <button onClick={handleAddModuleItem} disabled={uploadingImage} style={{
+            padding: '10px 15px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', opacity: uploadingImage ? 0.7 : 1
+          }}>
+            {uploadingImage ? 'Adding (Uploading Image)...' : 'Add Module Item'}
           </button>
         </div>
         {addStatus && <p style={{ marginTop: '10px', color: '#333' }}>{addStatus}</p>}

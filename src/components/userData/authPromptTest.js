@@ -212,7 +212,14 @@ export default function TestUserPromptsApi() {
                 <p><strong>AI Model:</strong> {promptDoc.aiModel || 'N/A'}</p>
                 <p><strong>Is Active:</strong> {promptDoc.isActive ? 'Yes' : 'No'}</p>
                 <p><strong>Prompt Thread:</strong> {promptDoc.promptThread && promptDoc.promptThread.length > 0 ? promptDoc.promptThread.join(' | ') : 'None'}</p>
-                <p><strong>Time Created:</strong> {promptDoc.timeCreated?.toDate ? promptDoc.timeCreated.toDate().toLocaleString() : (promptDoc.timeCreated || 'N/A')}</p>
+               <p>
+  <strong>Time Created:</strong>{" "}
+  {promptDoc.timeCreated && typeof promptDoc.timeCreated === "object" && typeof promptDoc.timeCreated.seconds === "number"
+    ? new Date(promptDoc.timeCreated.seconds * 1000).toLocaleString()
+    : promptDoc.timeCreated
+      ? promptDoc.timeCreated.toString()
+      : "N/A"}
+</p>
                 <p style={{ fontSize: '0.8em', color: '#888', marginTop: '10px' }}>Document ID: {promptDoc.id}</p>
                 <div style={{ marginTop: '15px' }}>
                   <button

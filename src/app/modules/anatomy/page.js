@@ -1,5 +1,5 @@
 // src/app/page.js
-import AnatomyModulesApi from '../../../components/anatomyModules';
+import AnatomyModulesApi from '../../../components/moduleData/anatomyModules';
 
 export default function Home() {
   return (

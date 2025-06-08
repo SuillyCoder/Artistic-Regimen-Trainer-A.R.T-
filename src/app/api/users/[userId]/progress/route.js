@@ -1,7 +1,7 @@
 // src/app/api/users/[userId]/progress/route.js
 
-import { collection, getDocs, doc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../../../../lib/firebase'; // Adjust path
+import { collection, getDoc, doc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../../../../../lib/firebase'; // Adjust path
 import { NextResponse } from 'next/server';
 
 const DEFAULT_DOC_ID = 'default';

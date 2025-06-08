@@ -25,15 +25,18 @@ export default function TestUserBadgesApi() {
     try {
       const res = await fetch(`/api/users/${userId}/badges`);
       if (res.ok) {
-        const data = await res.json();
-        setUserBadges(data);
-        setStatusMessage(`Badges fetched for user: ${userId}`);
-      } else {
-        const errorData = await res.json();
-        console.error('Failed to fetch user badges:', errorData.error || res.statusText);
-        setStatusMessage(`Failed to fetch user badges: ${errorData.error || res.statusText}`);
-        setUserBadges([]);
-      }
+  const data = await res.json();
+  setUserBadges(data);
+  setStatusMessage(`Badges fetched for user: ${userId}`);
+} else if (res.status === 404) {
+  setStatusMessage('No badge data found for this user.');
+  setUserBadges([]);
+} else {
+  const errorData = await res.json();
+  console.error('Failed to fetch user badges:', errorData.error || res.statusText);
+  setStatusMessage(`Failed to fetch user badges: ${errorData.error || res.statusText}`);
+  setUserBadges([]);
+}
     } catch (error) {
       console.error('Error fetching user badges:', error);
       setStatusMessage(`Error fetching user badges: ${error.message}`);

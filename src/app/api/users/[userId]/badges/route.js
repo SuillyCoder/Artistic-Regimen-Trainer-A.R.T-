@@ -1,28 +1,28 @@
 // src/app/api/users/[userId]/badges/route.js
 
-import { collection, getDocs, doc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../../../../lib/firebase'; // Adjust path
+import { collection, getDoc, doc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../../../../../lib/firebase'; // Adjust path
 import { NextResponse } from 'next/server';
 
 const DEFAULT_DOC_ID = 'default';
 
-export async function GET(request, { params }) {
+export async function GET(request, context) {
+  const { params } = await context;
+  const { userId } = params;
   try {
-    const { userId } = params;
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
     }
     const userBadgeDocRef = doc(db, 'users', userId, 'badges', DEFAULT_DOC_ID);
-    const docSnap = await getDoc(userBadgeDocRef); // Changed from getDocs to getDoc
+    const docSnap = await getDoc(userBadgeDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Return the default document's data as an array for consistency with other lists
       return NextResponse.json([{ id: DEFAULT_DOC_ID, ...data }], { status: 200 });
     } else {
       return NextResponse.json({ error: 'Default badge document not found for this user.' }, { status: 404 });
     }
   } catch (error) {
-    console.error(`Error getting user badges for user ${params.userId}:`, error);
+    console.error(`Error getting user badges for user ${userId}:`, error);
     return NextResponse.json({ error: 'Failed to retrieve user badges.' }, { status: 500 });
   }
 }

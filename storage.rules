@@ -1,10 +1,12 @@
 rules_version = '2';
-
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    // TEMPORARY: Allow ANYONE to read and write to module_items for developer testing.
+    // REMEMBER TO CHANGE THIS FOR PRODUCTION!
+    match /module_items/{allPaths=**} {
+      allow read, write: if true;
+    }
+    // Default: Deny all other access
     match /{allPaths=**} {
       allow read, write: if false;
     }
