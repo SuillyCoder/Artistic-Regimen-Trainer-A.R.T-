@@ -6,6 +6,9 @@ service firebase.storage {
     match /module_items/{allPaths=**} {
       allow read, write: if true;
     }
+    match /challenge_items/{allPaths=**} {
+      allow read, write: if true;
+    }
     // Default: Deny all other access
     match /{allPaths=**} {
       allow read, write: if false;

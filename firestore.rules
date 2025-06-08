@@ -2,11 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Allow access to moduleItems subcollections for development
-    match /modules/{moduleId}/items/{itemId} {
+    match /modules/{moduleId}/moduleItems/{itemId} {
+      allow read, write: if true;
+    }
+    //Allow access for all challenges and fetch all top-level data
+    match /challenges/{challengeId} {
       allow read, write: if true;
     }
     // Allow access to challenge items subcollections for development
-    match /challenges/{challengeId}/items/{itemId} {
+    match /challenges/{challengeId}/challengeItems/{itemId} {
       allow read, write: if true;
     }
     // (Optional) Keep your previous rule for /module_items if you use it elsewhere

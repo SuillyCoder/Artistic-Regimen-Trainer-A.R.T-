@@ -11,6 +11,7 @@ export default function PerspectiveModulesApi() {
   const [addStatus, setAddStatus] = useState('');
   const [updateStatus, setUpdateStatus] = useState('');
   const [deleteStatus, setDeleteStatus] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
 
   // States for adding a new module item
   const [newItemFile, setNewItemFile] = useState(null); // For file upload
