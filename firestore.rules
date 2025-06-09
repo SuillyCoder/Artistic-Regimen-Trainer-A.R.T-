@@ -1,25 +1,72 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow access to moduleItems subcollections for development
-    match /modules/{moduleId}/moduleItems/{itemId} {
-      allow read, write: if true;
+    // Rule for top-level 'users' collection
+    match /users/{userId} {
+      // Allow an authenticated user (request.auth != null) to:
+      // - 'get': Read their own user document
+      // - 'create': Create their own user document (if it doesn't exist yet, upon first login)
+      // - 'update': Update their own user document
+      allow get, create, update: if request.auth != null && request.auth.uid == userId;
+
+      // Deny deletion of top-level user documents by default unless explicitly needed
+      allow delete: if false;
+
+      // Rules for user-specific subcollections
+      // Badges subcollection
+      match /badges/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      // Gallery subcollection
+      match /gallery/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      // Progress subcollection
+      match /progress/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      // Prompts subcollection
+      match /prompts/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Rule for 'users/{userId}/public/data' (for publicly shared data by a user)
+      // Assuming this path is used for data that can be shared/accessed by other authenticated users
+      match /public/data/{collectionId}/{docId} {
+          // Allow authenticated users to read and write to this path
+          allow read, write: if request.auth != null;
+      }
     }
-    //Allow access for all challenges and fetch all top-level data
+
+    // Rules for top-level collections (challenges, modules, badges) that are generally accessible
+    // or managed by an admin (for example). Adjust these permissions as per your app's design.
+
+    // Challenges Collection and its subcollection (challengeItems)
     match /challenges/{challengeId} {
-      allow read, write: if true;
+      allow read: if true; // Everyone can read challenges
+      // Example: only authenticated users who are also admins can create, update, delete
+      // You would need to implement admin roles/claims in Firebase Auth.
+      allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
     }
-    // Allow access to challenge items subcollections for development
     match /challenges/{challengeId}/challengeItems/{itemId} {
-      allow read, write: if true;
+      allow read: if true; // Everyone can read challenge items
+      allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
     }
-    // (Optional) Keep your previous rule for /module_items if you use it elsewhere
-    match /module_items/{document=**} {
-      allow read, write: if true;
+
+    // Modules Collection and its subcollection (moduleItems)
+    match /modules/{moduleId} {
+      allow read: if true; // Everyone can read modules
+      allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
     }
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
+    match /modules/{moduleId}/moduleItems/{itemId} {
+      allow read: if true; // Everyone can read module items
+      allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Badges Collection (top-level, app-wide badges)
+    match /badges/{badgeId} {
+      allow read: if true; // Everyone can read badges
+      allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
     }
   }
 }
