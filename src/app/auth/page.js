@@ -14,60 +14,63 @@ export default function AuthPage() {
   const hasRedirected = useRef(false);
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-    setUser(currentUser);
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
 
-    if (currentUser) {
-      const uid = currentUser.uid;
-      if (!uid) {
-        console.warn('User object does not have a uid yet.');
-        return;
-      }
-
-      try {
-        const userDocRef = doc(db, 'users', uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (!userDocSnap.exists()) {
-          const initialUserData = {
-            userName: currentUser.displayName || 'New User',
-            email: currentUser.email || '',
-            profilePic: currentUser.photoURL || '',
-          };
-          await setDoc(userDocRef, initialUserData);
-          console.log('Created new user document');
-
-          await setDoc(doc(collection(userDocRef, 'badges'), 'default'), { badgeList: [], fulfilled: false });
-          await setDoc(doc(collection(userDocRef, 'gallery'), 'default'), { artworkGallery: [], referenceGallery: [] });
-          await setDoc(doc(collection(userDocRef, 'progress'), 'default'), { badgeList: [], progress: 0, toDoList: [] });
-          await setDoc(doc(collection(userDocRef, 'prompts'), 'default'), { aiModel: 'default_model', isActive: true, promptThread: [], timeCreated: new Date() });
-          console.log('Initialized user subcollections');
-
-          setUserData(initialUserData);
-        } else {
-          setUserData(userDocSnap.data());
-          console.log('User document exists:', userDocSnap.data());
+      if (currentUser) {
+        const uid = currentUser.uid;
+        if (!uid) {
+          console.warn('User object does not have a uid yet.');
+          return;
         }
 
-        if (!hasRedirected.current) {
-          hasRedirected.current = true;
-          router.push('/navigation');
-          console.log('Redirected to /navigation');
+        try {
+          const userDocRef = doc(db, 'users', uid);
+          const userDocSnap = await getDoc(userDocRef);
+
+          if (!userDocSnap.exists()) {
+            const initialUserData = {
+              userName: currentUser.displayName || 'New User',
+              email: currentUser.email || '',
+              profilePic: currentUser.photoURL || '',
+            };
+            await setDoc(userDocRef, initialUserData);
+            console.log('Created new user document');
+
+            await setDoc(doc(collection(userDocRef, 'badges'), 'default'), { badgeList: [], fulfilled: false });
+            await setDoc(doc(collection(userDocRef, 'gallery'), 'default'), { artworkGallery: [], referenceGallery: [] });
+            await setDoc(doc(collection(userDocRef, 'progress'), 'default'), { badgeList: [], progress: 0, toDoList: [] });
+            await setDoc(doc(collection(userDocRef, 'prompts'), 'default'), { aiModel: 'default_model', isActive: true, promptThread: [], timeCreated: new Date() });
+            console.log('Initialized user subcollections');
+
+            setUserData(initialUserData);
+          } else {
+            setUserData(userDocSnap.data());
+            console.log('User document exists:', userDocSnap.data());
+          }
+
+          if (!hasRedirected.current) {
+            hasRedirected.current = true;
+
+            // Optionally fetch ID token and store it or send it to your API here
+            // const idToken = await currentUser.getIdToken();
+
+            router.push('/');
+            console.log('Redirected to /');
+          }
+        } catch (error) {
+          console.error('Error fetching or creating user document:', error);
         }
-      } catch (error) {
-        console.error('Error fetching or creating user document:', error);
+      } else {
+        setUserData(null);
+        hasRedirected.current = false;
+        console.log('User signed out or not authenticated');
       }
-    } else {
-      setUserData(null);
-      hasRedirected.current = false;
-      console.log('User signed out or not authenticated');
-    }
-  });
+    });
 
-  return () => unsubscribe();
-}, [router]);
-
+    return () => unsubscribe();
+  }, [router]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -75,7 +78,7 @@ export default function AuthPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       console.log('Signed in:', result.user.uid);
-      // onAuthStateChanged will handle redirect
+      // onAuthStateChanged listener will handle redirect and user doc logic
     } catch (error) {
       console.error('Sign in error:', error);
     }
