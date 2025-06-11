@@ -76,7 +76,7 @@ export default function GestureModulesApi() {
 
     const newItem = {
       image: imageUrl, // Use the uploaded URL or placeholder
-      link: newItemLink || `https://example.com/test_link_${Date.now()}`,
+      link: newItemLink || `https://www.youtube.com/watch?v=dQw4w9WgXcQ`,
       title: newItemTitle || `Test Item ${Date.now()}`,
       order: parseInt(newItemOrder) || (moduleItems.length > 0 ? Math.max(...moduleItems.map(item => item.order || 0)) + 1 : 1),
     };
@@ -111,7 +111,7 @@ export default function GestureModulesApi() {
   const handleUpdateModuleItem = async (itemId, currentTitle, currentLink, currentImage) => {
     const tamperedData = {
       title: `${currentTitle} - TAMPERED!`,
-      link: `https://tampered.example.com/${itemId}`,
+      link: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`,
       image: `https://placehold.co/100x100/FF0000/FFFFFF?text=Tampered`, // Visual indication of tampering
       order: (Math.random() > 0.5 ? 999 : 1),
     };

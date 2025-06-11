@@ -12,10 +12,11 @@ import { NextResponse } from 'next/server';
  * @param {Object} params Dynamic route parameters, containing moduleId.
  * @returns {NextResponse} A JSON response containing the module items data or an error message.
  */
-export async function GET(request, { params }) {
+export async function GET(request, context) {
+  const params = await context.params;
+  const { moduleId } = params;
+  // ...rest of your code
   try {
-    const { moduleId } = params; // Get the moduleId from the dynamic route
-
     if (!moduleId) {
       return NextResponse.json({ error: 'Module ID is required.' }, { status: 400 });
     }
@@ -32,10 +33,14 @@ export async function GET(request, { params }) {
 
     return NextResponse.json(moduleItems, { status: 200 });
   } catch (error) {
-    console.error(`Error getting module items for module ${params.moduleId}:`, error);
-    return NextResponse.json({ error: 'Failed to retrieve module items.' }, { status: 500 });
+    console.error('Error getting module items:', {
+       moduleId: params.moduleId,
+       error,
+       errorString: error && error.toString ? error.toString() : error
+    });
+    return NextResponse.json({ error: error.message || 'Failed to retrieve module items.' }, { status: 500 });
+    }
   }
-}
 
 /**
  * Handles POST requests to add a new module item to a specific module.
@@ -45,9 +50,13 @@ export async function GET(request, { params }) {
  * @param {Object} params Dynamic route parameters, containing moduleId.
  * @returns {NextResponse} A JSON response with the ID of the newly added module item or an error message.
  */
+/**
+ * Handles POST requests to add a new module item to a specific module.
+ */
 export async function POST(request, { params }) {
   try {
-    const { moduleId } = params; // Get the moduleId from the dynamic route
+    // Await the params object
+    const { moduleId } = params;
 
     if (!moduleId) {
       return NextResponse.json({ error: 'Module ID is required for adding item.' }, { status: 400 });
