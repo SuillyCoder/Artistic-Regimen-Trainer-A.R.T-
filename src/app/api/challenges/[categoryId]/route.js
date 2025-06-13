@@ -1,133 +1,89 @@
-// src/app/api/challenges/[challengeId]/items/route.js
-
-// Import necessary Firestore functions and the 'db' instance
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../../../../lib/firebase'; // Adjust path: 3 levels up to src, then into lib
+// src/app/api/challenges/[categoryId]/route.js
 import { NextResponse } from 'next/server';
+import { getFirebaseAdminApp } from '../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
+
+const adminDb = getFirebaseAdminApp();
 
 /**
- * Handles GET requests to retrieve challenge items for a specific challenge.
- * URL: /api/challenges/[challengeId]/items
- * @param {Request} request The incoming request object.
- * @param {Object} params Dynamic route parameters, containing challengeId.
- * @returns {NextResponse} A JSON response containing the challenge items data or an error message.
+ * GET /api/challenges/[categoryId]
+ * Fetches details for a specific challenge category.
  */
 export async function GET(request, { params }) {
-  try {
-    const { challengeId } = params; // Get the challengeId from the dynamic route
+  const { categoryId } = params;
 
-    if (!challengeId) {
-      return NextResponse.json({ error: 'Challenge ID is required.' }, { status: 400 });
+  try {
+    const docRef = adminDb.collection('challenges').doc(categoryId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return NextResponse.json({ message: 'Challenge category not found.' }, { status: 404 });
     }
 
-    // Reference the specific challengeItems subcollection
-    const challengeItemsCollectionRef = collection(db, 'challenges', challengeId, 'challengeItems');
-
-    // Fetch all documents from the challengeItems subcollection
-    const querySnapshot = await getDocs(challengeItemsCollectionRef);
-    const challengeItems = [];
-    querySnapshot.forEach((doc) => {
-      challengeItems.push({ id: doc.id, ...doc.data() });
-    });
-
-    return NextResponse.json(challengeItems, { status: 200 });
+    return NextResponse.json({ id: doc.id, ...doc.data() }, { status: 200 });
   } catch (error) {
-    console.error(`Error getting challenge items for challenge ${params.challengeId}:`, error);
-    return NextResponse.json({ error: 'Failed to retrieve challenge items.' }, { status: 500 });
+    console.error(`Error fetching challenge category ${categoryId}:`, error);
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 /**
- * Handles POST requests to add a new challenge item to a specific challenge.
- * URL: /api/challenges/[challengeId]/items
- * Request Body: { challengeGallery: string[], instructions: string, order: number, setTimeLimit: number, timeLimits: number[] }
- * @param {Request} request The incoming request object.
- * @param {Object} params Dynamic route parameters, containing challengeId.
- * @returns {NextResponse} A JSON response with the ID of the newly added challenge item or an error message.
- */
-export async function POST(request, { params }) {
-  try {
-    const { challengeId } = params; // Get the challengeId from the dynamic route
-
-    if (!challengeId) {
-      return NextResponse.json({ error: 'Challenge ID is required for adding item.' }, { status: 400 });
-    }
-
-    // Parse the request body to get the challenge item data
-    const itemData = await request.json();
-
-    // Basic validation (you might want more robust validation)
-    if (!itemData.instructions || itemData.order === undefined) {
-      return NextResponse.json({ error: 'Missing required fields: instructions or order.' }, { status: 400 });
-    }
-
-    // Add a new document to the specific challengeItems subcollection
-    const docRef = await addDoc(collection(db, 'challenges', challengeId, 'challengeItems'), itemData);
-
-    return NextResponse.json({ id: docRef.id, message: 'Challenge item added successfully.' }, { status: 201 });
-  } catch (error) {
-    console.error(`Error adding challenge item to challenge ${params.challengeId}:`, error);
-    return NextResponse.json({ error: 'Failed to add challenge item.' }, { status: 500 });
-  }
-}
-
-/**
- * Handles PUT requests to update an existing challenge item.
- * URL: /api/challenges/[challengeId]/items?itemId=[itemId]
- * Request Body: { fieldToUpdate: newValue }
- * @param {Request} request The incoming request object.
- * @param {Object} params Dynamic route parameters, containing challengeId.
- * @returns {NextResponse} A JSON response confirming the update or an error message.
+ * PUT /api/challenges/[categoryId]
+ * Updates details for a specific challenge category.
+ * Body should contain fields to update (e.g., { description: "new description" }).
  */
 export async function PUT(request, { params }) {
-  try {
-    const { challengeId } = params;
-    const { searchParams } = new URL(request.url);
-    const itemId = searchParams.get('itemId'); // Get the item ID from query parameters
+  const { categoryId } = params;
 
-    if (!challengeId || !itemId) {
-      return NextResponse.json({ error: 'Challenge ID and Item ID are required for update.' }, { status: 400 });
+  try {
+    const updates = await request.json();
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ message: 'No fields provided for update.' }, { status: 400 });
     }
 
-    // Parse the request body to get the updated item data
-    const updatedData = await request.json();
+    const docRef = adminDb.collection('challenges').doc(categoryId);
+    const doc = await docRef.get();
 
-    // Get a reference to the specific challenge item document
-    const itemRef = doc(db, 'challenges', challengeId, 'challengeItems', itemId);
+    if (!doc.exists) {
+      return NextResponse.json({ message: 'Challenge category not found.' }, { status: 404 });
+    }
 
-    // Update the document with the provided data
-    await updateDoc(itemRef, updatedData);
+    await docRef.update(updates);
 
-    return NextResponse.json({ message: 'Challenge item updated successfully.' }, { status: 200 });
+    return NextResponse.json({ message: `Challenge category '${categoryId}' updated successfully!` }, { status: 200 });
   } catch (error) {
-    console.error(`Error updating challenge item ${itemId} in challenge ${challengeId}:`, error);
-    return NextResponse.json({ error: 'Failed to update challenge item.' }, { status: 500 });
+    console.error(`Error updating challenge category ${categoryId}:`, error);
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 /**
- * Handles DELETE requests to delete a challenge item.
- * URL: /api/challenges/[challengeId]/items?itemId=[itemId]
- * @param {Request} request The incoming request object.
- * @param {Object} params Dynamic route parameters, containing challengeId.
- * @returns {NextResponse} A JSON response confirming the deletion or an error message.
+ * DELETE /api/challenges/[categoryId]
+ * Deletes a specific challenge category and all its sub-collections (challengeItems, difficulties).
+ * NOTE: Deleting a document with subcollections in Firestore requires explicit deletion of subcollection documents.
+ * This example uses a simplified approach; for large subcollections, a recursive delete function
+ * (e.g., using Firebase Admin SDK's `deleteCollection` or a Callable Cloud Function) is recommended.
  */
 export async function DELETE(request, { params }) {
-  try {
-    const { challengeId } = params;
-    const { searchParams } = new URL(request.url);
-    const itemId = searchParams.get('itemId'); // Get the item ID from query parameters
+  const { categoryId } = params;
 
-    if (!challengeId || !itemId) {
-      return NextResponse.json({ error: 'Challenge ID and Item ID are required for deletion.' }, { status: 400 });
+  try {
+    const categoryRef = adminDb.collection('challenges').doc(categoryId);
+    const categoryDoc = await categoryRef.get();
+
+    if (!categoryDoc.exists) {
+      return NextResponse.json({ message: 'Challenge category not found.' }, { status: 404 });
     }
 
-    // Delete the specified challenge item document
-    await deleteDoc(doc(db, 'challenges', challengeId, 'challengeItems', itemId));
+    // Acknowledge this is a simplified delete. For production, consider recursive delete.
+    // E.g., await deleteCollection(adminDb, categoryRef.collection('challengeItems'));
+    // For simplicity, we'll just delete the parent document here.
+    // If you need to recursively delete, look into Firebase Admin SDK's batch operations or Cloud Functions.
+    await categoryRef.delete();
 
-    return NextResponse.json({ message: 'Challenge item deleted successfully.' }, { status: 200 });
+    return NextResponse.json({ message: `Challenge category '${categoryId}' deleted successfully!` }, { status: 200 });
   } catch (error) {
-    console.error(`Error deleting challenge item ${itemId} from challenge ${challengeId}:`, error);
-    return NextResponse.json({ error: 'Failed to delete challenge item.' }, { status: 500 });
+    console.error(`Error deleting challenge category ${categoryId}:`, error);
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }

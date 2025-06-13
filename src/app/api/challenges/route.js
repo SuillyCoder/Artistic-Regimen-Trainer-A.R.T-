@@ -1,107 +1,99 @@
 // src/app/api/challenges/route.js
+import { firestore, FieldValue } from '../../../../lib/firebaseAdmin'; // Adjust path if needed
 
-// Import necessary Firestore functions and the 'db' instance
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../../../lib/firebase';
-import { NextResponse } from 'next/server';
-
-/**
- * Handles GET requests to retrieve all top-level challenge documents.
- * URL: /api/challenges
- * @returns {NextResponse} A JSON response containing the challenges data or an error message.
- */
 export async function GET(request) {
   try {
-    // Fetch all documents from the 'challenges' collection
-    const querySnapshot = await getDocs(collection(db, 'challenges'));
-    const challenges = [];
-    querySnapshot.forEach((doc) => {
-      // For each document, add its ID and data to the challenges array
-      challenges.push({ id: doc.id, ...doc.data() });
-    });
+    const challengesRef = firestore.collection('challenges');
+    const snapshot = await challengesRef.get();
 
-    // Return a successful response with the challenges data
-    return NextResponse.json(challenges, { status: 200 });
+    if (snapshot.empty) {
+      return new Response(JSON.stringify({ message: 'No challenge categories found.' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const categories = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return new Response(JSON.stringify(categories), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    // Log the error for debugging purposes
-    console.error('Error getting challenges:', error);
-    // Return an error response
-    return NextResponse.json({ error: 'Failed to retrieve challenges.' }, { status: 500 });
+    console.error('Error fetching challenge categories:', error);
+    return new Response(JSON.stringify({ message: 'Internal Server Error', error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
 
-/**
- * Handles POST requests to add a new top-level challenge document.
- * URL: /api/challenges
- * Request Body: { category: string, description: string, title: string }
- * @param {Request} request The incoming request object.
- * @returns {NextResponse} A JSON response with the ID of the newly added challenge or an error message.
- */
 export async function POST(request) {
   try {
-    // Parse the request body to get the challenge data
-    const challengeData = await request.json();
+    const { title, category, description } = await request.json();
 
-    // Add a new document to the 'challenges' collection
-    const docRef = await addDoc(collection(db, 'challenges'), challengeData);
-
-    // Return a successful response with the ID of the new challenge
-    return NextResponse.json({ id: docRef.id, message: 'Challenge added successfully.' }, { status: 201 });
-  } catch (error) {
-    // Log the error for debugging purposes
-    console.error('Error adding challenge:', error);
-    // Return an error response
-    return NextResponse.json({ error: 'Failed to add challenge.' }, { status: 500 });
-  }
-}
-
-/**
- * Handles PUT requests to update an existing top-level challenge document.
- * URL: /api/challenges?id=[challengeId]
- * Request Body: { fieldToUpdate: newValue }
- * @param {Request} request The incoming request object.
- * @returns {NextResponse} A JSON response confirming the update or an error message.
- */
-export async function PUT(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const challengeId = searchParams.get('id');
-
-    if (!challengeId) {
-      return NextResponse.json({ error: 'Challenge ID is required for update.' }, { status: 400 });
+    if (!title || !category || !description) {
+      return new Response(JSON.stringify({ message: 'Missing required fields: title, category, description.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    const updatedData = await request.json();
-    const challengeRef = doc(db, 'challenges', challengeId);
-    await updateDoc(challengeRef, updatedData);
+    // Ensure the 'category' field is treated as the document ID (slug)
+    const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
 
-    return NextResponse.json({ message: 'Challenge updated successfully.' }, { status: 200 });
-  } catch (error) {
-    console.error(`Error updating challenge ${challengeId}:`, error);
-    return NextResponse.json({ error: 'Failed to update challenge.' }, { status: 500 });
-  }
-}
+    const challengeDocRef = firestore.collection('challenges').doc(categorySlug);
 
-/**
- * Handles DELETE requests to delete a top-level challenge document.
- * URL: /api/challenges?id=[challengeId]
- * @param {Request} request The incoming request object.
- * @returns {NextResponse} A JSON response confirming the deletion or an error message.
- */
-export async function DELETE(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const challengeId = searchParams.get('id');
+    // Check if a document with this ID already exists
+    const docSnapshot = await challengeDocRef.get();
+    if (docSnapshot.exists) {
+      // You might want to handle this differently:
+      // 1. Return 409 Conflict if you don't allow overwriting.
+      // 2. Update existing document with merge: true if you allow partial updates.
+      // 3. Just continue and overwrite (default for .set() if no merge).
 
-    if (!challengeId) {
-      return NextResponse.json({ error: 'Challenge ID is required for deletion.' }, { status: 400 });
+      // For creating new categories, a 409 Conflict is often appropriate
+      return new Response(JSON.stringify({ message: `Category with ID '${categorySlug}' already exists.` }), {
+        status: 409, // Conflict
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    await deleteDoc(doc(db, 'challenges', challengeId));
+    const newCategoryData = {
+      title,
+      category: categorySlug, // Store the slug as the category field as well for consistency
+      description,
+      createdAt: FieldValue.serverTimestamp(), // Add a timestamp
+    };
 
-    return NextResponse.json({ message: 'Challenge deleted successfully.' }, { status: 200 });
+    await challengeDocRef.set(newCategoryData); // Use .set() to use the custom ID
+
+    return new Response(JSON.stringify({
+      message: 'Challenge category added successfully!',
+      id: categorySlug,
+      ...newCategoryData
+    }), {
+      status: 201, // Created
+      headers: { 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
-    console.error(`Error deleting challenge ${challengeId}:`, error);
-    return NextResponse.json({ error: 'Failed to delete challenge.' }, { status: 500 });
+    console.error('Error adding challenge category:', error);
+    // Return a 500 Internal Server Error with more detail
+    return new Response(JSON.stringify({
+      message: 'Internal Server Error while adding challenge category',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined, // Include stack in dev
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
+
+// Implement PUT and DELETE if needed for categories
+// export async function PUT(request) { ... }
+// export async function DELETE(request) { ... }
