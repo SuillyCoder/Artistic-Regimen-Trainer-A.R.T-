@@ -2,7 +2,7 @@
 
 // Import necessary Firestore functions and the 'db' instance
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../../../../../lib/firebase'; // Adjust path: 3 levels up to src, then into lib
+import { db } from '../../../../../lib/firebase'; // Adjust path: 3 levels up to src, then into lib
 import { NextResponse } from 'next/server';
 
 /**

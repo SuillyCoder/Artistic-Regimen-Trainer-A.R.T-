@@ -1,5 +1,5 @@
 // src/app/page.js
-import TestChallengesApi from '../../components/challengeTest';
+import TestChallengesApi from '../../components/challengeAssets/challengeTest';
 
 export default function Home() {
   return (

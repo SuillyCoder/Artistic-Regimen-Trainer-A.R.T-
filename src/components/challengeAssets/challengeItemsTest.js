@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage functions
-import { storage } from '../../lib/firebase'; // Import the initialized storage instance
+import { storage } from '../../../lib/firebase'; // Import the initialized storage instance
 
 export default function TestChallengeItemsApi() {
   const challengeIdToTest = '6tXib22LliAQVy5Xphee'; // <<<<<<< IMPORTANT: Change this to the ID of the challenge you want to test!
