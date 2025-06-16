@@ -1,9 +1,6 @@
 // src/app/api/challenges/[categoryId]/items/[itemId]/route.js
 import { NextResponse } from 'next/server';
-import { getFirebaseAdminApp } from '../../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
-
-const adminDb = getFirebaseAdminApp();
-
+import { firestore } from '../../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
 /**
  * GET /api/challenges/[categoryId]/items/[itemId]
  * Fetches details for a specific challenge item.
@@ -12,7 +9,7 @@ export async function GET(request, { params }) {
   const { categoryId, itemId } = params;
 
   try {
-    const itemRef = adminDb.collection('challenges').doc(categoryId).collection('challengeItems').doc(itemId);
+    const itemRef = firestore.collection('challenges').doc(categoryId).collection('challengeItems').doc(itemId);
     const doc = await itemRef.get();
 
     if (!doc.exists) {
@@ -41,7 +38,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ message: 'No fields provided for update.' }, { status: 400 });
     }
 
-    const itemRef = adminDb.collection('challenges').doc(categoryId).collection('challengeItems').doc(itemId);
+    const itemRef = firestore.collection('challenges').doc(categoryId).collection('challengeItems').doc(itemId);
     const doc = await itemRef.get();
 
     if (!doc.exists) {
@@ -66,7 +63,7 @@ export async function DELETE(request, { params }) {
   const { categoryId, itemId } = params;
 
   try {
-    const itemRef = adminDb.collection('challenges').doc(categoryId).collection('challengeItems').doc(itemId);
+    const itemRef = firestore.collection('challenges').doc(categoryId).collection('challengeItems').doc(itemId);
     const itemDoc = await itemRef.get();
 
     if (!itemDoc.exists) {

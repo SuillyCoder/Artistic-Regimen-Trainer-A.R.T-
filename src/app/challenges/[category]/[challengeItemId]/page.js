@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { app } from '@/lib/firebase'; // Assuming your client-side Firebase app is exported from here
+import { app } from '../../../../../lib/firebase'; // Assuming your client-side Firebase app is exported from here
 
 const storage = getStorage(app); // Get Firebase Storage instance
 

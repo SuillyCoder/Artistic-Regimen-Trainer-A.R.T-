@@ -1,9 +1,6 @@
 // src/app/api/challenges/[categoryId]/items/[itemId]/difficulty/[difficultyLevel]/route.js
 import { NextResponse } from 'next/server';
-import { getFirebaseAdminApp } from '../../../../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
-
-const adminDb = getFirebaseAdminApp();
-
+import { firestore } from '../../../../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
 /**
  * GET /api/challenges/[categoryId]/items/[itemId]/difficulty/[difficultyLevel]
  * Fetches the gallery for a specific difficulty level of a challenge item.
@@ -12,7 +9,7 @@ export async function GET(request, { params }) {
   const { categoryId, itemId, difficultyLevel } = params;
 
   try {
-    const docRef = adminDb
+    const docRef = firestore
       .collection('challenges')
       .doc(categoryId)
       .collection('challengeItems')
@@ -48,7 +45,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ message: 'Missing or invalid "gallery" field (must be an array of URLs).' }, { status: 400 });
     }
 
-    const docRef = adminDb
+    const docRef = firestore
       .collection('challenges')
       .doc(categoryId)
       .collection('challengeItems')
@@ -78,7 +75,7 @@ export async function DELETE(request, { params }) {
   const { categoryId, itemId, difficultyLevel } = params;
 
   try {
-    const docRef = adminDb
+    const docRef = firestore
       .collection('challenges')
       .doc(categoryId)
       .collection('challengeItems')

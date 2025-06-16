@@ -1,8 +1,6 @@
 // src/app/api/challenges/[categoryId]/items/[itemId]/difficulty/route.js
 import { NextResponse } from 'next/server';
-import { getFirebaseAdminApp } from '../../../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
-
-const adminDb = getFirebaseAdminApp();
+import { firestore } from '../../../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
 
 /**
  * GET /api/challenges/[categoryId]/items/[itemId]/difficulty
@@ -12,7 +10,7 @@ export async function GET(request, { params }) {
   const { categoryId, itemId } = params;
 
   try {
-    const difficultyRef = adminDb
+    const difficultyRef = firestore
       .collection('challenges')
       .doc(categoryId)
       .collection('challengeItems')
@@ -56,7 +54,7 @@ export async function POST(request, { params }) {
         return NextResponse.json({ message: 'Invalid difficultyLevel. Must be "easy", "medium", or "hard".' }, { status: 400 });
     }
 
-    const difficultyDocRef = adminDb
+    const difficultyDocRef = firestore
       .collection('challenges')
       .doc(categoryId)
       .collection('challengeItems')

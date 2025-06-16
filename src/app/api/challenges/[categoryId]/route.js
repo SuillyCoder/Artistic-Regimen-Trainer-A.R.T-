@@ -1,8 +1,6 @@
 // src/app/api/challenges/[categoryId]/route.js
 import { NextResponse } from 'next/server';
-import { getFirebaseAdminApp } from '../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
-
-const adminDb = getFirebaseAdminApp();
+import { firestore } from '../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
 
 /**
  * GET /api/challenges/[categoryId]
@@ -12,7 +10,7 @@ export async function GET(request, { params }) {
   const { categoryId } = params;
 
   try {
-    const docRef = adminDb.collection('challenges').doc(categoryId);
+    const docRef = firestore.collection('challenges').doc(categoryId);
     const doc = await docRef.get();
 
     if (!doc.exists) {
@@ -41,7 +39,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ message: 'No fields provided for update.' }, { status: 400 });
     }
 
-    const docRef = adminDb.collection('challenges').doc(categoryId);
+    const docRef = firestore.collection('challenges').doc(categoryId);
     const doc = await docRef.get();
 
     if (!doc.exists) {
@@ -68,7 +66,7 @@ export async function DELETE(request, { params }) {
   const { categoryId } = params;
 
   try {
-    const categoryRef = adminDb.collection('challenges').doc(categoryId);
+    const categoryRef = firestore.collection('challenges').doc(categoryId);
     const categoryDoc = await categoryRef.get();
 
     if (!categoryDoc.exists) {
@@ -76,7 +74,7 @@ export async function DELETE(request, { params }) {
     }
 
     // Acknowledge this is a simplified delete. For production, consider recursive delete.
-    // E.g., await deleteCollection(adminDb, categoryRef.collection('challengeItems'));
+    // E.g., await deleteCollection(firestore, categoryRef.collection('challengeItems'));
     // For simplicity, we'll just delete the parent document here.
     // If you need to recursively delete, look into Firebase Admin SDK's batch operations or Cloud Functions.
     await categoryRef.delete();

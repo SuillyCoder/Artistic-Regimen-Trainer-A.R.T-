@@ -1,10 +1,7 @@
 // src/app/api/challenges/[categoryId]/items/route.js
 import { NextResponse } from 'next/server';
-import { getFirebaseAdminApp } from '../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
+import { firestore } from '../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
 import { FieldValue } from 'firebase-admin/firestore'; // For auto-incrementing 'order'
-
-const adminDb = getFirebaseAdminApp();
-
 /**
  * GET /api/challenges/[categoryId]/items
  * Fetches all challenge items for a specific category.
@@ -13,7 +10,7 @@ export async function GET(request, { params }) {
   const { categoryId } = params;
 
   try {
-    const itemsRef = adminDb.collection('challenges').doc(categoryId).collection('challengeItems');
+    const itemsRef = firestore.collection('challenges').doc(categoryId).collection('challengeItems');
     const snapshot = await itemsRef.orderBy('order').get(); // Order by 'order' field
 
     if (snapshot.empty) {
@@ -48,7 +45,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ message: 'Missing required fields (description, title, timeLimit).' }, { status: 400 });
     }
 
-    const itemsRef = adminDb.collection('challenges').doc(categoryId).collection('challengeItems');
+    const itemsRef = firestore.collection('challenges').doc(categoryId).collection('challengeItems');
 
     // To auto-increment 'order':
     // Find the current maximum order to set the new order
