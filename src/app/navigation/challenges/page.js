@@ -8,6 +8,7 @@ export default function ChallengesPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true); // Start loading state
   const [error, setError] = useState(null);
+  const router = useRouter(); // Initialize router for navigation
 
   // Use useEffect to fetch data when the component mounts
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function ChallengesPage() {
             <div
               key={category.id}
               className="bg-gray-800 p-6 rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300 transform hover:scale-105 cursor-pointer border border-gray-700"
-              // onClick={() => router.push(`/navigation/challenges/${category.id}`)} // Example for navigating to sub-challenges
+              onClick={() => router.push(`/navigation/challenges/${category.id}`)} // Example for navigating to sub-challenges
             >
               <h2 className="text-3xl font-bold text-green-300 mb-2">
                 {category.title || category.category}

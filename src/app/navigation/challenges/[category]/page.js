@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import ChallengeListings from '@/components/challenges/ChallengeListings'; // Path to your ChallengeListings component
+import ChallengeListings from '../../../../components/challengeAssets/challengeListings'; // Path to your ChallengeListings component
 
 export default function CategoryChallengesPage() {
   const { category } = useParams(); // Get the dynamic category from the URL

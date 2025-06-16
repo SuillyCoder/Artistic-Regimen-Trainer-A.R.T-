@@ -3,8 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import ChallengeDetailsAndOptions from '@/components/challenges/ChallengeDetailsAndOptions'; // Path to your component
-import ActiveChallengeSession from '@/components/challenges/ActiveChallengeSession'; // Path to your component
+// Corrected paths for imports:
+import ChallengeDetailsAndOptions from '../../../../../components/challengeAssets/challengeDetailsAndOptions';
+import ActiveChallengeSession from '../../../../../components/challengeAssets/activeChallengeSession';
 
 export default function SingleChallengePage() {
   const { category, challengeId } = useParams(); // Get dynamic parameters
