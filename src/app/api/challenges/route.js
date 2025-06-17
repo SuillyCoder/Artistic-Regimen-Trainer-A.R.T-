@@ -97,3 +97,69 @@ export async function POST(request) {
 // Implement PUT and DELETE if needed for categories
 // export async function PUT(request) { ... }
 // export async function DELETE(request) { ... }
+
+async function deleteCollection(collectionRef, batchSize) {
+    const query = collectionRef.limit(batchSize);
+    return new Promise((resolve, reject) => {
+        deleteQueryBatch(firestore, query, resolve).catch(reject);
+    });
+}
+
+async function deleteQueryBatch(db, query, resolve) {
+    const snapshot = await query.get();
+
+    if (snapshot.size === 0) {
+        resolve();
+        return;
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+
+    // If there are more documents, recursively call
+    process.nextTick(() => {
+        deleteQueryBatch(db, query, resolve);
+    });
+}
+
+
+// NEW: DELETE Handler for deleting a challenge category
+export async function DELETE(request, { params }) {
+  const { categoryId } = params;
+  try {
+    const categoryRef = firestore.collection('challenges').doc(categoryId);
+
+    // Check if the category exists first
+    const categoryDoc = await categoryRef.get();
+    if (!categoryDoc.exists) {
+      return new Response(JSON.stringify({ message: 'Category not found.' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // IMPORTANT: Recursively delete all subcollections (e.g., 'challengeItems')
+    // This is crucial because Firestore doesn't delete subcollections automatically
+    const challengeItemsRef = categoryRef.collection('challengeItems');
+    await deleteCollection(challengeItemsRef, 100); // Batch size 100
+
+    // After all subcollections are deleted, delete the main category document
+    await categoryRef.delete();
+
+    return new Response(JSON.stringify({ message: `Category '${categoryId}' and its contents deleted successfully.` }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error(`Error deleting category ${categoryId}:`, error);
+    return new Response(JSON.stringify({ message: 'Internal Server Error', error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}

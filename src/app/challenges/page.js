@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // For navigation after adding
+import { useRouter } from 'next/navigation';
 
 export default function AdminChallengesPage() {
   const [newCategory, setNewCategory] = useState({
@@ -15,15 +15,16 @@ export default function AdminChallengesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [addStatus, setAddStatus] = useState(''); // For showing success/error of add operation
+  const [deleteStatus, setDeleteStatus] = useState(''); // New: For showing success/error of delete operation
   const router = useRouter();
 
   const fetchCategories = async () => {
     setLoading(true);
     setError(null);
+    setDeleteStatus(''); // Clear delete status on re-fetch
     try {
       const response = await fetch('/api/challenges');
       if (!response.ok) {
-        // If 404, it means no categories yet, which is fine
         if (response.status === 404) {
             setCategories([]);
             return;
@@ -55,6 +56,7 @@ export default function AdminChallengesPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setAddStatus('');
+    setDeleteStatus(''); // Clear delete status on add operation
     try {
       const categorySlug = newCategory.category.toLowerCase().replace(/\s+/g, '-');
       const payload = {
@@ -82,6 +84,32 @@ export default function AdminChallengesPage() {
     } catch (err) {
       console.error("Error adding category:", err);
       setAddStatus(`Error adding category: ${err.message}`);
+    }
+  };
+
+  // New: handleDelete function
+  const handleDelete = async (categoryId, categoryTitle) => {
+    if (!window.confirm(`Are you sure you want to delete the category "${categoryTitle}"? This will also delete all associated challenge items and difficulties within it.`)) {
+      return; // User cancelled
+    }
+
+    setDeleteStatus('Deleting category...');
+    setAddStatus(''); // Clear add status on delete operation
+    try {
+      const response = await fetch(`/api/challenges/${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      setDeleteStatus(`Category "${categoryTitle}" deleted successfully!`);
+      fetchCategories(); // Refresh the list of categories
+    } catch (err) {
+      console.error(`Error deleting category ${categoryId}:`, err);
+      setDeleteStatus(`Error deleting category: ${err.message}`);
     }
   };
 
@@ -148,6 +176,7 @@ export default function AdminChallengesPage() {
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-2xl font-semibold mb-4">Existing Challenge Categories</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
+        {deleteStatus && <p className="mt-2 text-sm text-center text-blue-600">{deleteStatus}</p>} {/* New: Display delete status */}
         {categories.length === 0 ? (
           <p className="text-gray-500">No categories added yet.</p>
         ) : (
@@ -158,9 +187,18 @@ export default function AdminChallengesPage() {
                   <h3 className="text-lg font-medium">{cat.title} ({cat.id})</h3>
                   <p className="text-sm text-gray-600">{cat.description}</p>
                 </div>
-                <Link href={`/challenges/${cat.id}`} className="text-blue-600 hover:underline">
-                  Manage Items &rarr;
-                </Link>
+                {/* Modified: Added Delete Button */}
+                <div className="flex items-center space-x-2">
+                  <Link href={`/challenges/${cat.id}`} className="text-blue-600 hover:underline text-sm">
+                    Manage Items &rarr;
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(cat.id, cat.title)}
+                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-md transition-colors text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
