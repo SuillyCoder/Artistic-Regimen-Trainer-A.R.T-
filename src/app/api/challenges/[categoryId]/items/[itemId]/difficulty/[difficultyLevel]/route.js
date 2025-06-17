@@ -1,98 +1,59 @@
-// src/app/api/challenges/[categoryId]/items/[itemId]/difficulty/[difficultyLevel]/route.js
+// src/app/api/challenges/[category]/items/[challengeId]/difficulty/[difficultyLevel]/route.js
 import { NextResponse } from 'next/server';
-import { firestore } from '../../../../../../../../../lib/firebaseAdmin'; // Assuming this path to your Admin SDK setup
-/**
- * GET /api/challenges/[categoryId]/items/[itemId]/difficulty/[difficultyLevel]
- * Fetches the gallery for a specific difficulty level of a challenge item.
- */
+import { firestore } from '../../../../../../../../../lib/firebaseAdmin';
+
 export async function GET(request, { params }) {
-  const { categoryId, itemId, difficultyLevel } = params;
+  const { category, challengeId, difficultyLevel } = params;
 
-  try {
-    const docRef = firestore
-      .collection('challenges')
-      .doc(categoryId)
-      .collection('challengeItems')
-      .doc(itemId)
-      .collection('difficulty')
-      .doc(difficultyLevel);
-
-    const doc = await docRef.get();
-
-    if (!doc.exists) {
-      return NextResponse.json({ message: `Difficulty level '${difficultyLevel}' not found for this challenge item.` }, { status: 404 });
-    }
-
-    return NextResponse.json({ level: doc.id, ...doc.data() }, { status: 200 });
-  } catch (error) {
-    console.error(`Error fetching gallery for difficulty level ${difficultyLevel} of item ${itemId}:`, error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+  if (!category || !challengeId || !difficultyLevel) {
+    return new Response(JSON.stringify({ message: 'Missing parameters.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-}
-
-/**
- * PUT /api/challenges/[categoryId]/items/[itemId]/difficulty/[difficultyLevel]
- * Updates the gallery for a specific difficulty level.
- * Body should contain { gallery: ["new_url1", "new_url2"] }
- */
-export async function PUT(request, { params }) {
-  const { categoryId, itemId, difficultyLevel } = params;
 
   try {
-    const { gallery } = await request.json();
-
-    if (!Array.isArray(gallery)) {
-      return NextResponse.json({ message: 'Missing or invalid "gallery" field (must be an array of URLs).' }, { status: 400 });
-    }
-
-    const docRef = firestore
+    // Construct the path to the specific difficulty subcollection
+    // e.g., challenges/anatomy/challengeItems/someChallengeId/easyItems/easyDocId
+    const difficultyCollectionRef = firestore
       .collection('challenges')
-      .doc(categoryId)
+      .doc(category)
       .collection('challengeItems')
-      .doc(itemId)
-      .collection('difficulty')
-      .doc(difficultyLevel);
+      .doc(challengeId)
+      .collection(difficultyLevel); // This assumes your subcollection names are 'easyItems', 'mediumItems', 'hardItems'
 
-    const doc = await docRef.get();
-    if (!doc.exists) {
-        return NextResponse.json({ message: `Difficulty level '${difficultyLevel}' not found. Cannot update.` }, { status: 404 });
+    // Fetch the document within this difficulty subcollection.
+    // Assuming there's only one document per difficulty (e.g., 'data' or 'default')
+    // OR if you store multiple, you might need to query them.
+    // For now, let's assume one document per difficulty that holds the gallery array.
+    const snapshot = await difficultyCollectionRef.get();
+
+    let galleryData = { gallery: [], timeLimit: 0 }; // Default empty arrays/values
+
+    if (!snapshot.empty) {
+      // Assuming you store your gallery in a single document within the difficulty subcollection
+      // For example, if you have a document named 'galleryData' or 'main'
+      const doc = snapshot.docs[0]; // Just take the first document found
+      galleryData.gallery = doc.data().gallery || [];
+      galleryData.timeLimit = doc.data().timeLimit || 0;
+    } else {
+        // If no document found in the difficulty subcollection, return 404
+        return new Response(JSON.stringify({ message: `No gallery data found for difficulty ${difficultyLevel}.` }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
 
-    await docRef.update({ gallery });
+    return new Response(JSON.stringify(galleryData), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-    return NextResponse.json({ message: `Gallery for difficulty level '${difficultyLevel}' updated successfully!` }, { status: 200 });
   } catch (error) {
-    console.error(`Error updating gallery for difficulty level ${difficultyLevel} of item ${itemId}:`, error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
-  }
-}
-
-/**
- * DELETE /api/challenges/[categoryId]/items/[itemId]/difficulty/[difficultyLevel]
- * Deletes a specific difficulty level document (effectively removing its gallery).
- */
-export async function DELETE(request, { params }) {
-  const { categoryId, itemId, difficultyLevel } = params;
-
-  try {
-    const docRef = firestore
-      .collection('challenges')
-      .doc(categoryId)
-      .collection('challengeItems')
-      .doc(itemId)
-      .collection('difficulty')
-      .doc(difficultyLevel);
-
-    const doc = await docRef.get();
-    if (!doc.exists) {
-        return NextResponse.json({ message: `Difficulty level '${difficultyLevel}' not found. Nothing to delete.` }, { status: 404 });
-    }
-
-    await docRef.delete();
-
-    return NextResponse.json({ message: `Difficulty level '${difficultyLevel}' deleted successfully!` }, { status: 200 });
-  } catch (error) {
-    console.error(`Error deleting difficulty level ${difficultyLevel} of item ${itemId}:`, error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    console.error(`Error fetching gallery for ${category}/${challengeId}/${difficultyLevel}:`, error);
+    return new Response(JSON_stringify({ message: 'Internal Server Error', error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
