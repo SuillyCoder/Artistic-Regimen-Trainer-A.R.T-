@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
       // Assuming you store your gallery in a single document within the difficulty subcollection
       // For example, if you have a document named 'galleryData' or 'main'
       const doc = snapshot.docs[0]; // Just take the first document found
-      galleryData.gallery = doc.data().gallery || [];
+      galleryData.gallery = doc.data().challengeGallery || [];
       galleryData.timeLimit = doc.data().timeLimit || 0;
     } else {
         // If no document found in the difficulty subcollection, return 404
